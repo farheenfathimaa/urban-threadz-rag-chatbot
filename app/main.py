@@ -1,104 +1,91 @@
-import logging
-from fastapi import FastAPI
-import inngest
-import inngest.fast_api
-from inngest.experimental import ai
-from dotenv import load_dotenv
-import uuid
+import streamlit as st
+from app.auth import login
+from app.ui import render_chat_ui, add_message
+from app.config import BUSINESS_ID, PACKAGE_FEATURES, PACKAGE_TYPE
+
+from ingestion.ingest import ingest_files
+from utils.file_utils import ensure_directory
 import os
-import datetime
-from data_loader import load_and_chunk_pdf, embed_texts
-from vector_db import QdrantStorage
-from custom_types import RAQQueryResult, RAGSearchResult, RAGUpsertResult, RAGChunkAndSrc
 
-load_dotenv()
+# ===============================
+from rag.retriever import get_retriever
+from rag.chain import build_rag_chain, run_rag
+from utils.error_handler import handle_error
 
-inngest_client = inngest.Inngest(
-    app_id="rag_app",
-    logger=logging.getLogger("uvicorn"),
-    is_production=False,
-    serializer=inngest.PydanticSerializer()
-)
-
-@inngest_client.create_function(
-    fn_id="RAG: Ingest PDF",
-    trigger=inngest.TriggerEvent(event="rag/ingest_pdf"),
-    throttle=inngest.Throttle(
-        limit=2, period=datetime.timedelta(minutes=1)
-    ),
-    rate_limit=inngest.RateLimit(
-        limit=1,
-        period=datetime.timedelta(hours=4),
-        key="event.data.source_id",
-  ),
-)
-async def rag_ingest_pdf(ctx: inngest.Context):
-    def _load(ctx: inngest.Context) -> RAGChunkAndSrc:
-        pdf_path = ctx.event.data["pdf_path"]
-        source_id = ctx.event.data.get("source_id", pdf_path)
-        chunks = load_and_chunk_pdf(pdf_path)
-        return RAGChunkAndSrc(chunks=chunks, source_id=source_id)
-
-    def _upsert(chunks_and_src: RAGChunkAndSrc) -> RAGUpsertResult:
-        chunks = chunks_and_src.chunks
-        source_id = chunks_and_src.source_id
-        vecs = embed_texts(chunks)
-        ids = [str(uuid.uuid5(uuid.NAMESPACE_URL, f"{source_id}:{i}")) for i in range(len(chunks))]
-        payloads = [{"source": source_id, "text": chunks[i]} for i in range(len(chunks))]
-        QdrantStorage().upsert(ids, vecs, payloads)
-        return RAGUpsertResult(ingested=len(chunks))
-
-    chunks_and_src = await ctx.step.run("load-and-chunk", lambda: _load(ctx), output_type=RAGChunkAndSrc)
-    ingested = await ctx.step.run("embed-and-upsert", lambda: _upsert(chunks_and_src), output_type=RAGUpsertResult)
-    return ingested.model_dump()
+def real_rag_answer(query, role):
+    try:
+        retriever = get_retriever(BUSINESS_ID, role)
+        chain = build_rag_chain(retriever)
+        return run_rag(chain, query)
+    except Exception as e:
+        handle_error(e)
+        return "I couldn't process that request right now."
 
 
-@inngest_client.create_function(
-    fn_id="RAG: Query PDF",
-    trigger=inngest.TriggerEvent(event="rag/query_pdf_ai")
-)
-async def rag_query_pdf_ai(ctx: inngest.Context):
-    def _search(question: str, top_k: int = 5) -> RAGSearchResult:
-        query_vec = embed_texts([question])[0]
-        store = QdrantStorage()
-        found = store.search(query_vec, top_k)
-        return RAGSearchResult(contexts=found["contexts"], sources=found["sources"])
+# ===============================
+# STREAMLIT APP
+# ===============================
+st.set_page_config(page_title="RAG Business Chatbot", layout="centered")
 
-    question = ctx.event.data["question"]
-    top_k = int(ctx.event.data.get("top_k", 5))
+login()
+role = st.session_state.get("role", "user")
 
-    found = await ctx.step.run("embed-and-search", lambda: _search(question, top_k), output_type=RAGSearchResult)
+features = PACKAGE_FEATURES[PACKAGE_TYPE]
 
-    context_block = "\n\n".join(f"- {c}" for c in found.contexts)
-    user_content = (
-        "Use the following context to answer the question.\n\n"
-        f"Context:\n{context_block}\n\n"
-        f"Question: {question}\n"
-        "Answer concisely using the context above."
+# ===============================
+# ADMIN UPLOAD SECTION
+# ===============================
+if role == "admin" and features["admin_docs"]:
+    st.subheader("📄 Upload Business Documents")
+
+    uploaded_files = st.file_uploader(
+        "Upload PDF / TXT / DOCX files",
+        type=["pdf", "txt", "docx"],
+        accept_multiple_files=True
     )
 
-    adapter = ai.gemini.Adapter(
-        auth_key=os.getenv("GEMINI_API_KEY"),
-        model="gemini-2.5-flash"
-    )
+    if uploaded_files:
+        max_docs = features["max_docs"]
+        if max_docs and len(uploaded_files) > max_docs:
+            st.error(f"You can upload only {max_docs} documents for this package.")
+        else:
+            st.success(f"{len(uploaded_files)} document(s) uploaded successfully.")
 
+# ===============================
+# CHAT SECTION
+# ===============================
+query = render_chat_ui()
 
-    res = await ctx.step.ai.infer(
-        "llm-answer",
-        adapter=adapter,
-        body={
-            "max_tokens": 1024,
-            "temperature": 0.2,
-            "messages": [
-                {"role": "system", "content": "You answer questions using only the provided context."},
-                {"role": "user", "content": user_content}
-            ]
-        }
-    )
+if query:
+    add_message("user", query)
 
-    answer = res["choices"][0]["message"]["content"].strip()
-    return {"answer": answer, "sources": found.sources, "num_contexts": len(found.contexts)}
+    answer = real_rag_answer(query, role)
 
-app = FastAPI()
+    add_message("assistant", answer)
 
-inngest.fast_api.serve(app, inngest_client, [rag_ingest_pdf, rag_query_pdf_ai])
+def auto_ingest_existing_docs():
+    base_path = f"businesses/{BUSINESS_ID}"
+
+    for access in ["public", "admin"]:
+        docs_path = os.path.join(base_path, f"{access}_docs")
+        if not os.path.exists(docs_path):
+            continue
+
+        files = []
+        for filename in os.listdir(docs_path):
+            file_path = os.path.join(docs_path, filename)
+            files.append(open(file_path, "rb"))
+
+        if files:
+            ingest_files(files, BUSINESS_ID, access)
+
+if "ingested" not in st.session_state:
+    auto_ingest_existing_docs()
+    st.session_state.ingested = True
+
+ingest_files(
+    uploaded_files,
+    BUSINESS_ID,
+    "admin",
+    features["max_docs"]
+)

@@ -1,0 +1,19 @@
+{
+  "business_id": "urban_threadz",
+  "business_name": "Urban Threadz Pvt. Ltd.",
+  "industry": "Clothing & Fashion",
+  "package": "standard",
+  "branding": {
+    "primary_color": "#1f2937",
+    "accent_color": "#f97316",
+    "logo": "logo.png"
+  },
+  "llm_config": {
+    "primary": "groq",
+    "fallback": "gemini"
+  },
+  "access": {
+    "public_enabled": true,
+    "admin_enabled": true
+  }
+}

@@ -1,4 +1,85 @@
+# ===============================
+# ENV & SECRETS
+# ===============================
 .env
-venv/
+.env.*
+*.key
+
+# ===============================
+# PYTHON
+# ===============================
 __pycache__/
-*.pyc
+*.py[cod]
+*.pyo
+*.pyd
+*.so
+*.egg-info/
+.eggs/
+dist/
+build/
+
+# ===============================
+# VIRTUAL ENVIRONMENTS
+# ===============================
+venv/
+.venv/
+env/
+ENV/
+
+# ===============================
+# STREAMLIT
+# ===============================
+.streamlit/
+.streamlit/secrets.toml
+
+# ===============================
+# VECTOR DATABASES (AUTO-GENERATED)
+# ===============================
+vector_db/
+*.faiss
+*.pkl
+
+# ===============================
+# BUSINESS DATA (CLIENT FILES)
+# ===============================
+businesses/*/public_docs/*
+businesses/*/admin_docs/*
+!businesses/*/public_docs/.gitkeep
+!businesses/*/admin_docs/.gitkeep
+
+# ===============================
+# LOG FILES
+# ===============================
+*.log
+logs/
+
+# ===============================
+# DOCKER
+# ===============================
+docker-data/
+.dockerignore
+
+# ===============================
+# OS FILES
+# ===============================
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# ===============================
+# IDEs / EDITORS
+# ===============================
+.vscode/
+.idea/
+*.swp
+
+# ===============================
+# JUPYTER (IF USED LATER)
+# ===============================
+.ipynb_checkpoints/
+
+# ===============================
+# TEMP FILES
+# ===============================
+*.tmp
+*.temp

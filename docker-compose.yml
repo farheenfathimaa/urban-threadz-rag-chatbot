@@ -1,0 +1,18 @@
+version: "3.9"
+
+services:
+  rag-business-chatbot:
+    image: rag-business-chatbot:latest
+    container_name: rag_business_chatbot
+    build:
+      context: .
+      dockerfile: Dockerfile
+    ports:
+      - "8501:8501"
+    env_file:
+      - .env
+    volumes:
+      - .:/app
+      - ./vector_db:/app/vector_db
+      - ./businesses:/app/businesses
+    command: streamlit run app/main.py --server.port=8501 --server.address=0.0.0.0

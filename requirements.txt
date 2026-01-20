@@ -1,0 +1,13 @@
+streamlit
+python-dotenv
+
+langchain
+langchain-community
+langchain-groq
+langchain-google-genai
+
+faiss-cpu
+pymupdf
+docx2txt
+
+tqdm
