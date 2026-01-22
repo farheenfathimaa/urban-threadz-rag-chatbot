@@ -2,9 +2,7 @@ from langchain.chains import RetrievalQA
 from rag.prompts import RAG_PROMPT
 from rag.llm_factory import get_primary_llm, get_fallback_llm
 
-def build_rag_chain(retriever):
-    llm = get_primary_llm()
-
+def build_rag_chain(retriever, llm):
     return RetrievalQA.from_chain_type(
         llm=llm,
         retriever=retriever,
@@ -15,10 +13,14 @@ def build_rag_chain(retriever):
         return_source_documents=False
     )
 
-def run_rag(chain, query: str):
-    try:
-        return chain.run(query)
-    except Exception:
-        fallback_llm = get_fallback_llm()
-        chain.llm = fallback_llm
+def run_rag(retriever, query: str):
+    # try:
+    #     chain = build_rag_chain(retriever, get_primary_llm())
+    #     return chain.run(query)
+    # except Exception as e:
+    #     print(f"[WARN] Primary LLM failed: {e}")
+    #     fallback_chain = build_rag_chain(retriever, get_fallback_llm())
+    #     return fallback_chain.run(query)
+    def run_rag(retriever, query: str):
+        chain = build_rag_chain(retriever, get_primary_llm())
         return chain.run(query)

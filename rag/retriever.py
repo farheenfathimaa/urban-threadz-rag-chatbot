@@ -1,14 +1,16 @@
 import os
-from langchain.vectorstores import FAISS
-from langchain.embeddings import GoogleGenerativeAIEmbeddings
-from app.config import GEMINI_API_KEY
+from langchain_community.vectorstores import FAISS
+from langchain.embeddings import HuggingFaceEmbeddings
 
 VECTOR_DB_PATH = "vector_db"
 
 def get_embeddings():
-    return GoogleGenerativeAIEmbeddings(
-        google_api_key=GEMINI_API_KEY,
-        model="models/embedding-001"
+    """
+    Local, free, deterministic embeddings.
+    MUST match the model used during ingestion.
+    """
+    return HuggingFaceEmbeddings(
+        model_name="sentence-transformers/all-MiniLM-L6-v2"
     )
 
 def load_vectorstore(business_id: str):
@@ -16,9 +18,9 @@ def load_vectorstore(business_id: str):
     path = os.path.join(VECTOR_DB_PATH, business_id)
 
     if not os.path.exists(path):
-        os.makedirs(path)
-        return FAISS.from_documents([], get_embeddings()).as_retriever()
-
+        os.makedirs(path, exist_ok=True)
+        # Empty FAISS index (safe fallback)
+        return FAISS.from_documents([], embeddings)
 
     return FAISS.load_local(
         path,

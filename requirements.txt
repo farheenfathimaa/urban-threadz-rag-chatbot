@@ -1,13 +1,16 @@
+langchain==0.2.16
+langchain-community==0.2.16
+langchain-core==0.2.28
+langchain-text-splitters==0.2.4
+sentence-transformers==2.2.2
+transformers==4.36.2
+huggingface-hub==0.19.4
+
+langchain-google-genai == 0.0.9
+langchain-groq==0.1.5
+faiss-cpu
 streamlit
 python-dotenv
-
-langchain
-langchain-community
-langchain-groq
-langchain-google-genai
-
-faiss-cpu
 pymupdf
 docx2txt
-
-tqdm
+pypdf

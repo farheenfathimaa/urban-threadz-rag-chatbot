@@ -1,28 +1,23 @@
-from langchain.document_loaders import PyMuPDFLoader, TextLoader
-from langchain.document_loaders.word_document import Docx2txtLoader
+from langchain_community.document_loaders import PyMuPDFLoader, TextLoader, Docx2txtLoader
 import tempfile
 import os
 
-def load_document(uploaded_file):
-    suffix = uploaded_file.name.split(".")[-1].lower()
+def load_document(file_path: str):
+    """
+    Supports:
+    - Streamlit UploadedFile
+    - Normal opened files from disk (rb)
+    """
+    
+    ext = os.path.splitext(file_path)[1].lower()
 
-    with tempfile.NamedTemporaryFile(delete=False, suffix=f".{suffix}") as tmp:
-        tmp.write(uploaded_file.read())
-        temp_path = tmp.name
+    if ext == ".pdf":
+        loader = PyMuPDFLoader(file_path)
+    elif ext == ".txt":
+        loader = TextLoader(file_path, encoding="utf-8")
+    elif ext == "docx":
+            loader = Docx2txtLoader(file_path)
+    else:
+        raise ValueError(f"Unsupported file type: {ext}")
 
-    try:
-        if suffix == "pdf":
-            loader = PyMuPDFLoader(temp_path)
-        elif suffix == "txt":
-            loader = TextLoader(temp_path, encoding="utf-8")
-        elif suffix == "docx":
-            loader = Docx2txtLoader(temp_path)
-        else:
-            raise ValueError("Unsupported file type")
-
-        documents = loader.load()
-        return documents
-
-    finally:
-        if os.path.exists(temp_path):
-            os.remove(temp_path)
+    return loader.load()

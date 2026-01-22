@@ -1,6 +1,6 @@
 from langchain_groq import ChatGroq
-from langchain_google_genai import ChatGoogleGenerativeAI
-from app.config import GROQ_API_KEY, GEMINI_API_KEY
+#from langchain_google_genai import ChatGoogleGenerativeAI
+from app.config import GROQ_API_KEY
 
 def get_groq_llm():
     return ChatGroq(
@@ -9,15 +9,15 @@ def get_groq_llm():
         temperature=0
     )
 
-def get_gemini_llm():
-    return ChatGoogleGenerativeAI(
-        google_api_key=GEMINI_API_KEY,
-        model="gemini-1.5-flash",
-        temperature=0
-    )
+# def get_gemini_llm():
+#     return ChatGoogleGenerativeAI(
+#         google_api_key=GEMINI_API_KEY,
+#         model="gemini-1.5-flash",
+#         temperature=0
+#     )
 
 def get_primary_llm():
     return get_groq_llm()
 
 def get_fallback_llm():
-    return get_gemini_llm()
+    return None

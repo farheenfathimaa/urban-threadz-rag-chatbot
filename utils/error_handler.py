@@ -1,5 +1,6 @@
 import streamlit as st
 import logging
+import traceback
 
 logging.basicConfig(
     filename="app.log",
@@ -7,9 +8,13 @@ logging.basicConfig(
     format="%(asctime)s - %(levelname)s - %(message)s"
 )
 
+def handle_error(e: Exception):
+    error_msg = str(e)
 
-def handle_error(error: Exception, user_message: str = "Something went wrong."):
-    logging.error(str(error))
+    # Always safe inside Streamlit
+    st.error(error_msg)
 
-    if st._is_running_with_streamlit:
-        st.error(user_message)
+    # Optional: print full traceback in console
+    traceback.print_exc()
+
+
