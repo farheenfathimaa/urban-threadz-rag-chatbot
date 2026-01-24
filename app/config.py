@@ -34,7 +34,7 @@ PACKAGE_FEATURES = {
 }
 
 # ===============================
-# DEMO BUSINESS CONFIG
+# DEMO BUSINESS CONFIG 
 # ===============================
 BUSINESS_ID = "urban_threadz"
 PACKAGE_TYPE = "standard"  # change to basic / standard / premium
