@@ -2,7 +2,7 @@ import os
 import streamlit as st
 
 from app.auth import login
-from app.ui import render_chat_ui, add_message, load_business_config
+from app.ui import render_chat_ui, add_message, load_business_config, show_splash_screen
 from app.config import BUSINESS_ID, PACKAGE_FEATURES, PACKAGE_TYPE
 
 from ingestion.ingest import ingest_files
@@ -51,6 +51,35 @@ def run_app():
 
     business_config = load_business_config(BUSINESS_ID)
 
+    # ---- Session defaults (TOP of main.py) ----
+    if "app_phase" not in st.session_state:
+        # phases: entry → splash → app
+        st.session_state.app_phase = "entry"
+
+
+    # ---- ENTRY SCREEN (Welcome) ----
+    if st.session_state.app_phase == "entry":
+        st.markdown(
+            "<h1 style='text-align:center; margin-top:40vh;'>Welcome!</h1>",
+            unsafe_allow_html=True
+        )
+
+        col1, col2, col3 = st.columns([1, 1, 1])
+        with col2:
+            if st.button("🚀 Start Experience", use_container_width=True):
+                st.session_state.app_phase = "splash"
+                st.rerun()
+
+        st.stop()
+
+
+    # ---- SPLASH ANIMATION (ONCE) ----
+    if st.session_state.app_phase == "splash":
+        show_splash_screen(business_config)
+        st.session_state.app_phase = "app"
+        st.rerun()
+
+        
     # Auto-ingest once per session
     if "auto_ingested" not in st.session_state:
         auto_ingest_existing_docs()

@@ -3,15 +3,41 @@ from app.config import PACKAGE_FEATURES, PACKAGE_TYPE
 import os
 
 def logout(preserve_chat=True):
-    chat_history = st.session_state.get("chat_history", []) if preserve_chat else []
+    # Save current role's chat history before clearing
+    if preserve_chat and "role" in st.session_state:
+        current_role = st.session_state.role
+        chat_history = st.session_state.get("chat_history", [])
+        
+        # Store in role-specific key
+        if current_role == "admin":
+            st.session_state.admin_chat_history = chat_history
+        else:
+            st.session_state.user_chat_history = chat_history
 
-    st.session_state.clear()
+    # Clear session state
+    admin_chat = st.session_state.get("admin_chat_history", [])
+    user_chat = st.session_state.get("user_chat_history", [])
+    
+    # ✅ Remove ONLY auth-related keys
+    keys_to_remove = [
+        "logged_in",
+        "role",
+        "chat_history",
+        "is_admin",
+        "admin_logged_in",
+        "admin_user",
+        "admin_email",
+    ]
 
+    for key in keys_to_remove:
+        if key in st.session_state:
+            del st.session_state[key]
+    
+    # Restore role-specific chat histories
     if preserve_chat:
-        st.session_state.chat_history = chat_history
+        st.session_state.admin_chat_history = admin_chat
+        st.session_state.user_chat_history = user_chat
 
-    st.session_state.logged_in = False
-    st.session_state.role = "user"
     st.rerun()
 
 def login():
@@ -24,7 +50,7 @@ def login():
 
     st.title("Login")
     
-    if "role" not in st.session_state:
+    if not st.session_state.get("logged_in", False):
         role = st.selectbox("Login as", ["user", "admin"])
         password = st.text_input("Password", type="password")
 
@@ -36,6 +62,13 @@ def login():
             else:
                 st.session_state.role = role
                 st.session_state.logged_in = True
+                
+                # Load role-specific chat history
+                if role == "admin":
+                    st.session_state.chat_history = st.session_state.get("admin_chat_history", [])
+                else:
+                    st.session_state.chat_history = st.session_state.get("user_chat_history", [])
+                
                 st.success(f"Logged in as {role}")
                 st.rerun()
     
