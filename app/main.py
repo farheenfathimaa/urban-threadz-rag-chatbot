@@ -100,13 +100,3 @@ def run_app():
         add_message("assistant", answer)
         st.rerun()  # ✅ CRITICAL: Force UI refresh to show new messages
 
-    def logout():
-        for key in list(st.session_state.keys()):
-            del st.session_state[key]
-        st.rerun()
-    
-    if st.session_state.get("logged_in"):
-        with st.sidebar:
-            st.markdown("### 🔐 Session")
-            st.write(f"Role: **{st.session_state['role']}**")
-            st.button("🚪 Logout", on_click=logout)

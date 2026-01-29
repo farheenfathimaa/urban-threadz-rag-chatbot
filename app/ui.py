@@ -18,12 +18,14 @@ def render_chat_ui(business_config):
     st.markdown(
         f"""
         <style>
-        body {{
+        /* Main app background */
+        [data-testid="stAppViewContainer"] {{
             background-color: {secondary};
         }}
 
+        /* Chat messages */
         .stChatMessage[data-testid="chat-message-assistant"] {{
-            background-color: {secondary};
+            background-color: #161B22;
             border-left: 4px solid {accent};
             border-radius: 10px;
             padding: 12px;
@@ -36,27 +38,38 @@ def render_chat_ui(business_config):
             padding: 12px;
         }}
 
-        h1 {{
+        /* Headers */
+        h1, h2, h3 {{
             color: {primary};
         }}
 
+        /* Buttons */
         .stButton>button {{
             background-color: {primary};
             color: white;
             border-radius: 8px;
+            border: none;
+        }}
+
+        /* Sidebar */
+        [data-testid="stSidebar"] {{
+            background-color: #0E1117;
         }}
         </style>
         """,
         unsafe_allow_html=True
     )
-    logo_url = branding.get("logo_url", "https://drive.google.com/uc?id=1HQCR70hdr_s2T1wXGuV8QOVoLG7dLop8")
+
+    logo_url = branding.get("logo_url")
     business_name = business_config.get("business_name", "Business")
     
     # 🧠 Header
     col1, col2 = st.columns([1, 6])
     with col1:
         if logo_url:
-            st.image(logo_url, width=60)
+            logo_file = Path(f"businesses/{business_config['business_id']}/{logo_url}")
+            if logo_file.exists():
+                st.image(str(logo_file), width=60)
     with col2:
         st.markdown(
             f"<h1 style='margin-top: 10px;'>{business_name} Chatbot</h1>",
